@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Parametric curve visualizer</title>
+      <meta name="viewport" content="width=device-width" />
+      <meta name="description" content="Draw parametric curves with WebGL" />
+      <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      </style>
+      <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+        integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
+        crossorigin="anonymous"
+        defer
+      ></script>
+      <script type="text/javascript">
+      //<![CDATA[
+      var xDivs;
+      var yDivs;
+      var textureScaleX;
+      var textureScaleY;
+      var xs1;
+      var xs2;
+      var xs3;
+      var xs4;
+      var xs5;
+      var xc1;
+      var xc2;
+      var xc3;
+      var xc4;
+      var xc5;
+      var ys1;
+      var ys2;
+      var ys3;
+      var ys4;
+      var ys5;
+      var yc1;
+      var yc2;
+      var yc3;
+      var yc4;
+      var yc5;
+      var zs1;
+      var zs2;
+      var zs3;
+      var zs4;
+      var zs5;
+      var zc1;
+      var zc2;
+      var zc3;
+      var zc4;
+      var zc5;
+      var scale;
+      var radius;
+      var shininess;
+
+      var cubeRotation = 0.0;
+
+      // Starting point
+      function main() {
+        // Initialize variables from form and URL parameters
+        initVariables();
+
+        const canvas = document.querySelector("#glcanvas");
+        const gl = canvas.getContext("webgl");
+
+        // If we don't have a GL context, give up now
+        if (!gl) {
+          alert("Unable to initialize WebGL. Your browser or machine may not support it.");
+          return;
+        }
+
+        // Vertex shader program
+        const vsSource = `
+          attribute vec4 aVertexPosition;
+          attribute vec2 aTextureCoord;
+      
+          uniform mat4 uNormalMatrix;
+          uniform mat4 uModelViewMatrix;
+          uniform mat4 uProjectionMatrix;
+
+          varying highp vec2 vTextureCoord;
+          varying highp vec3 vTransformedNormal;
+          varying highp vec3 vTransformedPosition;
+
+          const highp float PI = 3.1415926535897932384626433832795;
+          const highp float xs1 = float(${xs1});
+          const highp float xs2 = float(${xs2});
+          const highp float xs3 = float(${xs3});
+          const highp float xs4 = float(${xs4});
+          const highp float xs5 = float(${xs5});
+          const highp float xc1 = float(${xc1});
+          const highp float xc2 = float(${xc2});
+          const highp float xc3 = float(${xc3});
+          const highp float xc4 = float(${xc4});
+          const highp float xc5 = float(${xc5});
+          const highp float ys1 = float(${ys1});
+          const highp float ys2 = float(${ys2});
+          const highp float ys3 = float(${ys3});
+          const highp float ys4 = float(${ys4});
+          const highp float ys5 = float(${ys5});
+          const highp float yc1 = float(${yc1});
+          const highp float yc2 = float(${yc2});
+          const highp float yc3 = float(${yc3});
+          const highp float yc4 = float(${yc4});
+          const highp float yc5 = float(${yc5});
+          const highp float zs1 = float(${zs1});
+          const highp float zs2 = float(${zs2});
+          const highp float zs3 = float(${zs3});
+          const highp float zs4 = float(${zs4});
+          const highp float zs5 = float(${zs5});
+          const highp float zc1 = float(${zc1});
+          const highp float zc2 = float(${zc2});
+          const highp float zc3 = float(${zc3});
+          const highp float zc4 = float(${zc4});
+          const highp float zc5 = float(${zc5});
+          const highp float scale = float(${scale});
+          const highp float radius = float(${radius});
+
+          void main(void) {
+            // Calculate position based on parametric curve
+            highp float s = PI * aVertexPosition.x;
+            highp float t = PI * aVertexPosition.y;
+            highp float s1 = sin(s);
+            highp float s2 = sin(2.0 * s);
+            highp float s3 = sin(3.0 * s);
+            highp float s4 = sin(4.0 * s);
+            highp float s5 = sin(5.0 * s);
+            highp float c1 = cos(s);
+            highp float c2 = cos(2.0 * s);
+            highp float c3 = cos(3.0 * s);
+            highp float c4 = cos(4.0 * s);
+            highp float c5 = cos(5.0 * s);
+            highp float sinT = sin(t);
+            highp float cosT = cos(t);
+            highp vec3 position = vec3(xs1 * s1 + xs2 * s2 + xs3 * s3 + xs4 * s4 + xs5 * s5 + xc1 * c1 + xc2 * c2 + xc3 * c3 + xc4 * c4 + xc5 * c5,
+                                       ys1 * s1 + ys2 * s2 + ys3 * s3 + ys4 * s4 + ys5 * s5 + yc1 * c1 + yc2 * c2 + yc3 * c3 + yc4 * c4 + yc5 * c5,
+                                       zs1 * s1 + zs2 * s2 + zs3 * s3 + zs4 * s4 + zs5 * s5 + zc1 * c1 + zc2 * c2 + zc3 * c3 + zc4 * c4 + zc5 * c5);
+            highp vec3 tangent = normalize(vec3(xs1 * c1 + 2.0 * xs2 * c2 + 3.0 * xs3 * c3 + 4.0 * xs4 * c4 + 5.0 * xs5 * c5 - xc1 * s1 - 2.0 * xc2 * s2 - 3.0 * xc3 * s3 - 4.0 * xc4 * s4 - 5.0 * xc5 * s5,
+                                                ys1 * c1 + 2.0 * ys2 * c2 + 3.0 * ys3 * c3 + 4.0 * ys4 * c4 + 5.0 * ys5 * c5 - yc1 * s1 - 2.0 * yc2 * s2 - 3.0 * yc3 * s3 - 4.0 * yc4 * s4 - 5.0 * yc5 * s5,
+                                                zs1 * c1 + 2.0 * zs2 * c2 + 3.0 * zs3 * c3 + 4.0 * zs4 * c4 + 5.0 * zs5 * c5 - zc1 * s1 - 2.0 * zc2 * s2 - 3.0 * zc3 * s3 - 4.0 * zc4 * s4 - 5.0 * zc5 * s5));
+            highp vec3 radialX = normalize(cross(position, tangent));
+            highp vec3 radialY = normalize(cross(radialX, tangent));
+            highp vec4 parameterizedPosition = vec4(scale * position + radius * cosT * radialX + radius * sinT * radialY, aVertexPosition.w);
+
+            gl_Position = uProjectionMatrix * uModelViewMatrix * parameterizedPosition;
+
+            vTextureCoord = aTextureCoord;
+
+            // Transformed surface normal for interpolating in the shader
+            vTransformedNormal = (uNormalMatrix * vec4(cosT * radialX + sinT * radialY, 1.0)).xyz;
+
+            // Transformed position for interpolating in the shader
+            vTransformedPosition = (uModelViewMatrix * parameterizedPosition).xyz;
+          }
+        `;
+
+        // Fragment shader program
+        const fsSource = `
+          varying highp vec2 vTextureCoord;
+          varying highp vec3 vTransformedNormal;
+          varying highp vec3 vTransformedPosition;
+
+          uniform sampler2D uSampler;
+
+          const highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+          const highp vec3 directionalLightColor = vec3(1, 1, 1);
+          const highp vec3 directionalLightVector = normalize(vec3(0.85, 0.8, 0.75));
+          const highp float shininess = float(${shininess});
+
+          void main(void) {
+            // Apply lighting effects
+            highp vec3 normal = normalize(vTransformedNormal);
+            highp float directionalLight = max(dot(normal, directionalLightVector), 0.0);
+            highp vec3 light = ambientLight + (directionalLightColor * directionalLight);
+            highp float specular = max(dot(normalize(-vTransformedPosition), reflect(-directionalLightVector, normal)), 0.0);
+
+            highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+
+            gl_FragColor = vec4(texelColor.rgb * light + directionalLightColor * pow(specular, shininess), texelColor.a);
+          }
+        `;
+
+        // Initialize a shader program; this is where all the lighting
+        // for the vertices and so forth is established.
+        const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+
+        // Collect all the info needed to use the shader program.
+        // Look up which attributes our shader program is using
+        // for aVertexPosition, aTextureCoord,
+        // and look up uniform locations.
+        const programInfo = {
+          program: shaderProgram,
+          attribLocations: {
+            vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
+            textureCoord: gl.getAttribLocation(shaderProgram, "aTextureCoord"),
+          },
+          uniformLocations: {
+            projectionMatrix: gl.getUniformLocation(
+              shaderProgram,
+              "uProjectionMatrix"
+            ),
+            modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
+            normalMatrix: gl.getUniformLocation(shaderProgram, "uNormalMatrix"),
+            uSampler: gl.getUniformLocation(shaderProgram, "uSampler"),
+          },
+        };
+
+        // Here's where we call the routine that builds all the
+        // objects we'll be drawing.
+        const buffers = initBuffers(gl);
+
+        const texture = loadTexture(gl, "https://github.com/NitorCreations/parametric-curve-visualizer/raw/main/texture.png");
+
+        // We are drawing solid objects so cull back-facing faces
+        gl.enable(gl.CULL_FACE);
+
+        var then = 0;
+
+        // Draw the scene repeatedly
+        function render(now) {
+          now *= 0.001; // convert to seconds
+          const deltaTime = now - then;
+          then = now;
+
+          drawScene(gl, programInfo, buffers, texture, deltaTime);
+
+          requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+      }
+
+      // Initialize the buffers we'll need
+      function initBuffers(gl) {
+        // Create a buffer for the vertex positions.
+
+        const positionBuffer = gl.createBuffer();
+
+        // Select the positionBuffer as the one to apply buffer
+        // operations to from here out.
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+        // Now create an array of positions.
+        const positions = [];
+        for (let j = 0; j <= yDivs; j++) {
+          for (let i = 0; i <= xDivs; i++) {
+            positions.push(2.0 * i / xDivs - 1.0);
+            positions.push(2.0 * j / yDivs - 1.0);
+            positions.push(0.0);
+          }
+        }
+
+        // Now pass the list of positions into WebGL to build the
+        // shape. We do this by creating a Float32Array from the
+        // JavaScript array, then use it to fill the current buffer.
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+        // Now set up the texture coordinates for the faces.
+        const textureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+
+        const textureCoordinates = [];
+        for (let j = 0; j <= yDivs; j++) {
+          for (let i = 0; i <= xDivs; i++) {
+            textureCoordinates.push(textureScaleX * i / xDivs);
+            textureCoordinates.push(-textureScaleY * j / yDivs);
+          }
+        }
+
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array(textureCoordinates),
+          gl.STATIC_DRAW
+        );
+
+        // Build the element array buffer; this specifies the indices
+        // into the vertex arrays for each face's vertices.
+        const indexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+        // This array defines each face as two triangles, using the
+        // indices into the vertex array to specify each triangle's
+        // position.
+        const indices = [];
+        for (let j = 0; j < yDivs; j++) {
+          for (let i = 0; i < xDivs; i++) {
+            indices.push(j * (xDivs + 1) + i);
+            indices.push(j * (xDivs + 1) + i + 1);
+            indices.push((j + 1) * (xDivs + 1) + i + 1);
+            indices.push(j * (xDivs + 1) + i);
+            indices.push((j + 1) * (xDivs + 1) + i + 1);
+            indices.push((j + 1) * (xDivs + 1) + i);
+          }
+        }
+
+        // Now send the element array to GL
+        gl.bufferData(
+          gl.ELEMENT_ARRAY_BUFFER,
+          new Uint16Array(indices),
+          gl.STATIC_DRAW
+        );
+
+        return {
+          position: positionBuffer,
+          textureCoord: textureCoordBuffer,
+          indices: indexBuffer,
+        };
+      }
+
+      // Initialize a texture and load an image.
+      // When the image finished loading copy it into the texture.
+      function loadTexture(gl, url) {
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        // Because images have to be download over the internet
+        // they might take a moment until they are ready.
+        // Until then put a single pixel in the texture so we can
+        // use it immediately. When the image has finished downloading
+        // we'll update the texture with the contents of the image.
+        const level = 0;
+        const internalFormat = gl.RGBA;
+        const width = 1;
+        const height = 1;
+        const border = 0;
+        const srcFormat = gl.RGBA;
+        const srcType = gl.UNSIGNED_BYTE;
+        const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          level,
+          internalFormat,
+          width,
+          height,
+          border,
+          srcFormat,
+          srcType,
+          pixel
+        );
+
+        const image = new Image();
+        image.onload = function () {
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            level,
+            internalFormat,
+            srcFormat,
+            srcType,
+            image
+          );
+
+          // WebGL1 has different requirements for power of 2 images
+          // vs non power of 2 images so check if the image is a
+          // power of 2 in both dimensions.
+          if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+            // Yes, it's a power of 2. Generate mips.
+            gl.generateMipmap(gl.TEXTURE_2D);
+          } else {
+            // No, it's not a power of 2. Turn of mips and set
+            // wrapping to clamp to edge
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          }
+        };
+        image.src = url;
+
+        return texture;
+      }
+
+      function isPowerOf2(value) {
+        return (value & (value - 1)) == 0;
+      }
+
+      // Draw the scene.
+      function drawScene(gl, programInfo, buffers, texture, deltaTime) {
+        // Resize canvas to full-screen size
+        resizeCanvasToDisplaySize(gl.canvas);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
+        gl.clearDepth(1.0); // Clear everything
+        gl.enable(gl.DEPTH_TEST); // Enable depth testing
+        gl.depthFunc(gl.LEQUAL); // Near things obscure far things
+
+        // Clear the canvas before we start drawing on it.
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        // Create a perspective matrix, a special matrix that is
+        // used to simulate the distortion of perspective in a camera.
+        // Our field of view is 45 degrees, with a width/height
+        // ratio that matches the display size of the canvas
+        // and we only want to see objects between 0.1 units
+        // and 100 units away from the camera.
+
+        const fieldOfView = (45 * Math.PI) / 180; // in radians
+        const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+        const zNear = 0.1;
+        const zFar = 100.0;
+        const projectionMatrix = mat4.create();
+
+        // note: glmatrix.js always has the first argument
+        // as the destination to receive the result.
+        mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+
+        // Set the drawing position to the "identity" point, which is
+        // the center of the scene.
+        const modelViewMatrix = mat4.create();
+
+        // Now move the drawing position a bit to where we want to
+        // start drawing.
+        mat4.translate(
+          modelViewMatrix, // destination matrix
+          modelViewMatrix, // matrix to translate
+          [-0.0, 0.0, -6.0]
+        ); // amount to translate
+        mat4.rotate(
+          modelViewMatrix, // destination matrix
+          modelViewMatrix, // matrix to rotate
+          cubeRotation, // amount to rotate in radians
+          [0, 0, 1]
+        ); // axis to rotate around (Z)
+        mat4.rotate(
+          modelViewMatrix, // destination matrix
+          modelViewMatrix, // matrix to rotate
+          cubeRotation * 0.7, // amount to rotate in radians
+          [0, 1, 0]
+        ); // axis to rotate around (X)
+
+        const normalMatrix = mat4.create();
+        mat4.invert(normalMatrix, modelViewMatrix);
+        mat4.transpose(normalMatrix, normalMatrix);
+
+        // Tell WebGL how to pull out the positions from the position
+        // buffer into the vertexPosition attribute
+        {
+          const numComponents = 3;
+          const type = gl.FLOAT;
+          const normalize = false;
+          const stride = 0;
+          const offset = 0;
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+          gl.vertexAttribPointer(
+            programInfo.attribLocations.vertexPosition,
+            numComponents,
+            type,
+            normalize,
+            stride,
+            offset
+          );
+          gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+        }
+
+        // Tell WebGL how to pull out the texture coordinates from
+        // the texture coordinate buffer into the textureCoord attribute.
+        {
+          const numComponents = 2;
+          const type = gl.FLOAT;
+          const normalize = false;
+          const stride = 0;
+          const offset = 0;
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffers.textureCoord);
+          gl.vertexAttribPointer(
+            programInfo.attribLocations.textureCoord,
+            numComponents,
+            type,
+            normalize,
+            stride,
+            offset
+          );
+          gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+        }
+
+        // Tell WebGL which indices to use to index the vertices
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+
+        // Tell WebGL to use our program when drawing
+        gl.useProgram(programInfo.program);
+
+        // Set the shader uniforms
+        gl.uniformMatrix4fv(
+          programInfo.uniformLocations.projectionMatrix,
+          false,
+          projectionMatrix
+        );
+        gl.uniformMatrix4fv(
+          programInfo.uniformLocations.modelViewMatrix,
+          false,
+          modelViewMatrix
+        );
+        gl.uniformMatrix4fv(
+          programInfo.uniformLocations.normalMatrix,
+          false,
+          normalMatrix
+        );
+
+        // Specify the texture to map onto the faces.
+
+        // Tell WebGL we want to affect texture unit 0
+        gl.activeTexture(gl.TEXTURE0);
+
+        // Bind the texture to texture unit 0
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        // Tell the shader we bound the texture to texture unit 0
+        gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
+
+        {
+          const vertexCount = xDivs * yDivs * 6;
+          const type = gl.UNSIGNED_SHORT;
+          const offset = 0;
+          gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+        }
+
+        // Update the rotation for the next draw
+        cubeRotation += deltaTime;
+      }
+
+      // Initialize a shader program, so WebGL knows how to draw our data
+      function initShaderProgram(gl, vsSource, fsSource) {
+        const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+        // Create the shader program
+        const shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        // If creating the shader program failed, alert
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+          alert("Unable to initialize the shader program: " + gl.getProgramInfoLog(shaderProgram));
+          return null;
+        }
+
+        return shaderProgram;
+      }
+
+      // creates a shader of the given type, uploads the source and compiles it.
+      function loadShader(gl, type, source) {
+        const shader = gl.createShader(type);
+
+        // Send the source to the shader object
+        gl.shaderSource(shader, source);
+
+        // Compile the shader program
+        gl.compileShader(shader);
+
+        // See if it compiled successfully
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          alert("An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader));
+          gl.deleteShader(shader);
+          return null;
+        }
+
+        return shader;
+      }
+
+      function resizeCanvasToDisplaySize(canvas) {
+        // Lookup the size the browser is displaying the canvas in CSS pixels.
+        const displayWidth  = canvas.clientWidth;
+        const displayHeight = canvas.clientHeight;
+
+        // Check if the canvas is not the same size.
+        const needResize = canvas.width !== displayWidth ||
+                           canvas.height !== displayHeight;
+
+        if (needResize) {
+          // Make the canvas the same size
+          canvas.width  = displayWidth;
+          canvas.height = displayHeight;
+        }
+      }
+
+      function initVariables() {
+        // Set form elements from URL query parameters
+        const urlSearchParams = new URLSearchParams(window.location.search);
+        const form = document.getElementById("parameters");
+        for (const [key, value] of urlSearchParams) {
+          const element = document.getElementById(key);
+          if (element && element.form === form) {
+            element.value = value;
+          }
+        }
+        const getFloatElement = (id) => {
+          const value = parseFloat(document.getElementById(id).value);
+          return isNaN(value) ? 0.0 : value;
+        }
+        // Set global variables from form input elements
+        xDivs = getFloatElement("xDivs");
+        yDivs = getFloatElement("yDivs");
+        textureScaleX = getFloatElement("textureScaleX");
+        textureScaleY = getFloatElement("textureScaleY");
+        xs1 = getFloatElement("xs1");
+        xs2 = getFloatElement("xs2");
+        xs3 = getFloatElement("xs3");
+        xs4 = getFloatElement("xs4");
+        xs5 = getFloatElement("xs5");
+        xc1 = getFloatElement("xc1");
+        xc2 = getFloatElement("xc2");
+        xc3 = getFloatElement("xc3");
+        xc4 = getFloatElement("xc4");
+        xc5 = getFloatElement("xc5");
+        ys1 = getFloatElement("ys1");
+        ys2 = getFloatElement("ys2");
+        ys3 = getFloatElement("ys3");
+        ys4 = getFloatElement("ys4");
+        ys5 = getFloatElement("ys5");
+        yc1 = getFloatElement("yc1");
+        yc2 = getFloatElement("yc2");
+        yc3 = getFloatElement("yc3");
+        yc4 = getFloatElement("yc4");
+        yc5 = getFloatElement("yc5");
+        zs1 = getFloatElement("zs1");
+        zs2 = getFloatElement("zs2");
+        zs3 = getFloatElement("zs3");
+        zs4 = getFloatElement("zs4");
+        zs5 = getFloatElement("zs5");
+        zc1 = getFloatElement("zc1");
+        zc2 = getFloatElement("zc2");
+        zc3 = getFloatElement("zc3");
+        zc4 = getFloatElement("zc4");
+        zc5 = getFloatElement("zc5");
+        scale = getFloatElement("scale");
+        radius = getFloatElement("radius");
+        shininess = getFloatElement("shininess");
+      }
+
+      window.onload = main;
+      //]]>
+      </script>
+  </head>
+  <body>
+    <canvas id="glcanvas"></canvas>
+    <h3>Parameters:</h3>
+    <form id="parameters">
+      x = <input id="xs1" name="xs1" value="0" size="1" /> sin(t) + <input id="xs2" name="xs2" value="0" size="1" /> sin(2t) + <input id="xs3" name="xs3" value="0" size="1" /> sin(3t) + <input id="xs4" name="xs4" value="0" size="1" /> sin(4t) + <input id="xs5" name="xs5" value="0" size="1" /> sin(5t) +
+          <input id="xc1" name="xc1" value="1" size="1" /> cos(t) + <input id="xc2" name="xc2" value="2" size="1" /> cos(2t) + <input id="xc3" name="xc3" value="0" size="1" /> cos(3t) + <input id="xc4" name="xc4" value="0" size="1" /> cos(4t) + <input id="xc5" name="xc5" value="0" size="1" /> cos(5t)<br />
+      y = <input id="ys1" name="ys1" value="1" size="1" /> sin(t) + <input id="ys2" name="ys2" value="-2" size="1" /> sin(2t) + <input id="ys3" name="ys3" value="0" size="1" /> sin(3t) + <input id="ys4" name="ys4" value="0" size="1" /> sin(4t) + <input id="ys5" name="ys5" value="0" size="1" /> sin(5t) +
+          <input id="yc1" name="yc1" value="0" size="1" /> cos(t) + <input id="yc2" name="yc2" value="0" size="1" /> cos(2t) + <input id="yc3" name="yc3" value="0" size="1" /> cos(3t) + <input id="yc4" name="yc4" value="0" size="1" /> cos(4t) + <input id="yc5" name="yc5" value="0" size="1" /> cos(5t)<br />
+      z = <input id="zs1" name="zs1" value="0" size="1" /> sin(t) + <input id="zs2" name="zs2" value="0" size="1" /> sin(2t) + <input id="zs3" name="zs3" value="-1" size="1" /> sin(3t) + <input id="zs4" name="zs4" value="0" size="1" /> sin(4t) + <input id="zs5" name="zs5" value="0" size="1" /> sin(5t) +
+          <input id="zc1" name="zc1" value="0" size="1" /> cos(t) + <input id="zc2" name="zc2" value="0" size="1" /> cos(2t) + <input id="zc3" name="zc3" value="0" size="1" /> cos(3t) + <input id="zc4" name="zc4" value="0" size="1" /> cos(4t) + <input id="zc5" name="zc5" value="0" size="1" /> cos(5t)<br />
+      Subdivisions along length of curve = <input id="xDivs" name="xDivs" value="200" size="1" /><br />
+      Subdivisions around curve = <input id="yDivs" name="yDivs" value="50" size="1" /><br />
+      Texture repetitions along length of curve = <input id="textureScaleX" name="textureScaleX" value="16" size="1" /><br />
+      Texture repetitions around curve = <input id="textureScaleY" name="textureScaleY" value="1" size="1" /><br />
+      Scale = <input id="scale" name="scale" value="0.5" size="1" /><br />
+      Radius = <input id="radius" name="radius" value="0.2" size="1" /><br />
+      Shininess = <input id="shininess" name="shininess" value="20" size="1" /><br />
+      <input type="submit" value="Reload" />
+    </form>
+    <h3>Some examples:</h3>
+    <a href="?xs1=0&xs2=0&xs3=0&xc1=1&xc2=0&xc3=0&ys1=1&ys2=0&ys3=0&yc1=0&yc2=0&yc3=0&zs1=0&zs2=0&zs3=0&zc1=0&zc2=0&zc3=0&xDivs=200&yDivs=50&textureScaleX=8&textureScaleY=1&scale=1&radius=0.2&shininess=20">Torus</a><br />
+    <a href="?xs1=0&xs2=0&xs3=0&xc1=1&xc2=0&xc3=0&ys1=0&ys2=0.5&ys3=0&yc1=0&yc2=0&yc3=0&zs1=0.25&zs2=0&zs3=0&zc1=0&zc2=0&zc3=0&xDivs=200&yDivs=50&textureScaleX=8&textureScaleY=1&scale=1&radius=0.2&shininess=20">Lemniscate of Gerono</a><br />
+    <a href="?">Trefoil knot</a><br />
+    <a href="?xs1=-5.1&xs2=-3.4&xs3=-9.1&xs4=0&xc1=3.2&xc2=-10.4&xc3=10.4&xc4=0&ys1=4.1&ys2=0&ys3=-12.4&ys4=0&yc1=9.4&yc2=11.3&yc3=-6.8&yc4=0&zs1=7.3&zs2=-3.9&zs3=-2.1&zs4=0&zc1=1.6&zc2=-21.1&zc3=-9.9&zc4=0&xDivs=200&yDivs=50&textureScaleX=24&textureScaleY=1&scale=0.05&radius=0.15&shininess=20">Figure eight knot</a><br /><!-- https://mathcurve.com/courbes3d.gb/noeuds/noeudenhuit.shtml -->
+    <a href="?xs1=-12.8&xs2=0&xs3=-7.8&xs4=0&xc1=-2.2&xc2=0&xc3=-4.4&xc4=0&ys1=0&ys2=-2.7&ys3=0&ys4=4.6&yc1=0&yc2=-1&yc3=0&yc4=3.8&zs1=0&zs2=0&zs3=-4&zs4=0&zc1=0&zc2=0&zc3=7&zc4=0&xDivs=200&yDivs=50&textureScaleX=24&textureScaleY=1&scale=0.1&radius=0.15&shininess=20">Granny knot</a><br /><!-- http://paulbourke.net/geometry/knots/ -->
+    <a href="?xs1=-12.8&xs2=0&xs3=-7.8&xs4=0&xs5=0&xc1=-2.2&xc2=0&xc3=-4.4&xc4=0&xc5=0&ys1=0&ys2=0&ys3=-4.3&ys4=0&ys5=-3.9&yc1=1.1&yc2=0&yc3=0&yc4=0&yc5=3.4&zs1=0&zs2=0&zs3=-4&zs4=0&zs5=-0.9&zc1=0&zc2=0&zc3=7&zc4=0&zc5=1.8&xDivs=200&yDivs=50&textureScaleX=80&textureScaleY=1&scale=0.1&radius=0.04&shininess=20">Square knot</a><br /><!-- Square knot: https://virtualmathmuseum.org/docs/Square_Knot.pdf -->
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=1&ys3=0&ys4=0&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=1&zc2=0&zc3=0&zc4=0&xDivs=200&yDivs=50&textureScaleX=16&textureScaleY=1&scale=1&radius=0.2&shininess=20">Lissajous curve (1, 1, 2)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=0&ys3=1&ys4=0&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=1&zc2=0&zc3=0&zc4=0&xDivs=200&yDivs=50&textureScaleX=16&textureScaleY=1&scale=1&radius=0.2&shininess=20">Lissajous curve (1, 1, 3)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=1&ys3=0&ys4=0&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=0&zc2=0&zc3=1&zc4=0&xDivs=200&yDivs=50&textureScaleX=16&textureScaleY=1&scale=1&radius=0.2&shininess=20">Lissajous curve (1, 2, 3)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=0&ys3=0&ys4=1&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=1&zc2=0&zc3=0&zc4=0&xDivs=200&yDivs=50&textureScaleX=32&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 1, 4)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=0&ys3=0&ys4=1&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=0&zc2=0&zc3=1&zc4=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 3, 4)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=1&yc1=0&yc2=0&yc3=0&yc4=0&yc5=0&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=1&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 1, 5)</a><br />
+    <a href="?xs1=0&xs2=1&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=1&yc1=0&yc2=0&yc3=0&yc4=0&yc5=0&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=1&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 2, 5)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=0&yc1=0&yc2=0&yc3=0&yc4=0&yc5=1&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=0&zc2=0&zc3=1&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 3, 5)</a><br />
+    <a href="?xs1=0&xs2=1&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=1&yc1=0&yc2=0&yc3=0&yc4=0&yc5=0&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=0&zc2=0&zc3=1&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (2, 3, 5)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=0&yc1=0&yc2=0&yc3=0&yc4=0&yc5=1&zs1=0&zs2=0&zs3=0&zs4=1&zs5=0&zc1=0&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 4, 5)</a><br />
+    <a href="?xs1=0&xs2=0&xs3=0&xs4=1&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=0&yc1=0&yc2=0&yc3=0&yc4=0&yc5=1&zs1=0&zs2=0&zs3=1&zs4=0&zs5=0&zc1=0&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (3, 4, 5)</a><br />
+  </body>
+</html>
