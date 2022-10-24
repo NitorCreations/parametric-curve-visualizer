@@ -25,6 +25,7 @@
       //<![CDATA[
       var xDivs;
       var yDivs;
+      var textureUrl;
       var textureScaleX;
       var textureScaleY;
       var xs1;
@@ -217,7 +218,7 @@
         // objects we'll be drawing.
         const buffers = initBuffers(gl);
 
-        const texture = loadTexture(gl, "/NitorCreations/parametric-curve-visualizer/main/texture.png");
+        const texture = loadTexture(gl, textureUrl);
 
         // We are drawing solid objects so cull back-facing faces
         gl.enable(gl.CULL_FACE);
@@ -599,6 +600,7 @@
         // Set global variables from form input elements
         xDivs = getFloatElement("xDivs");
         yDivs = getFloatElement("yDivs");
+        textureUrl = document.getElementById("textureUrl").value;
         textureScaleX = getFloatElement("textureScaleX");
         textureScaleY = getFloatElement("textureScaleY");
         xs1 = getFloatElement("xs1");
@@ -652,6 +654,7 @@
           <input id="zc1" name="zc1" value="0" size="1" /> cos(t) + <input id="zc2" name="zc2" value="0" size="1" /> cos(2t) + <input id="zc3" name="zc3" value="0" size="1" /> cos(3t) + <input id="zc4" name="zc4" value="0" size="1" /> cos(4t) + <input id="zc5" name="zc5" value="0" size="1" /> cos(5t)<br />
       Subdivisions along length of curve = <input id="xDivs" name="xDivs" value="200" size="1" /><br />
       Subdivisions around curve = <input id="yDivs" name="yDivs" value="50" size="1" /><br />
+      Texture URL = <input id="textureUrl" name="textureUrl" value="texture.png" size="100" /><br />
       Texture repetitions along length of curve = <input id="textureScaleX" name="textureScaleX" value="16" size="1" /><br />
       Texture repetitions around curve = <input id="textureScaleY" name="textureScaleY" value="1" size="1" /><br />
       Scale = <input id="scale" name="scale" value="0.5" size="1" /><br />
