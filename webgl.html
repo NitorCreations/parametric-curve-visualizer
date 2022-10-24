@@ -60,6 +60,7 @@
       var zc5;
       var scale;
       var radius;
+      var specularity;
       var shininess;
 
       var cubeRotation = 0.0;
@@ -70,7 +71,7 @@
         initVariables();
 
         const canvas = document.querySelector("#glcanvas");
-        const gl = canvas.getContext("webgl");
+        const gl = canvas.getContext("webgl2");
 
         // If we don't have a GL context, give up now
         if (!gl) {
@@ -80,12 +81,12 @@
 
         // Vertex shader program
         const vsSource = `
-          attribute vec4 aVertexPosition;
+          attribute highp vec4 aVertexPosition;
           attribute vec2 aTextureCoord;
       
-          uniform mat4 uNormalMatrix;
-          uniform mat4 uModelViewMatrix;
-          uniform mat4 uProjectionMatrix;
+          uniform highp mat4 uNormalMatrix;
+          uniform highp mat4 uModelViewMatrix;
+          uniform highp mat4 uProjectionMatrix;
 
           varying highp vec2 vTextureCoord;
           varying highp vec3 vTransformedNormal;
@@ -174,6 +175,7 @@
           const highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
           const highp vec3 directionalLightColor = vec3(1, 1, 1);
           const highp vec3 directionalLightVector = normalize(vec3(0.85, 0.8, 0.75));
+          const highp float specularity = float(${specularity});
           const highp float shininess = float(${shininess});
 
           void main(void) {
@@ -185,7 +187,7 @@
 
             highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
 
-            gl_FragColor = vec4(texelColor.rgb * light + directionalLightColor * pow(specular, shininess), texelColor.a);
+            gl_FragColor = vec4(texelColor.rgb * light + directionalLightColor * specularity * pow(specular, shininess), texelColor.a);
           }
         `;
 
@@ -304,7 +306,7 @@
         // Now send the element array to GL
         gl.bufferData(
           gl.ELEMENT_ARRAY_BUFFER,
-          new Uint16Array(indices),
+          new Uint32Array(indices),
           gl.STATIC_DRAW
         );
 
@@ -517,7 +519,7 @@
 
         {
           const vertexCount = xDivs * yDivs * 6;
-          const type = gl.UNSIGNED_SHORT;
+          const type = gl.UNSIGNED_INT;
           const offset = 0;
           gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
         }
@@ -635,6 +637,7 @@
         zc5 = getFloatElement("zc5");
         scale = getFloatElement("scale");
         radius = getFloatElement("radius");
+        specularity = getFloatElement("specularity");
         shininess = getFloatElement("shininess");
       }
 
@@ -659,6 +662,7 @@
       Texture repetitions around curve = <input id="textureScaleY" name="textureScaleY" value="1" size="1" /><br />
       Scale = <input id="scale" name="scale" value="0.5" size="1" /><br />
       Radius = <input id="radius" name="radius" value="0.2" size="1" /><br />
+      Specularity = <input id="specularity" name="specularity" value="1.0" size="1" /><br />
       Shininess = <input id="shininess" name="shininess" value="20" size="1" /><br />
       <input type="submit" value="Reload" />
     </form>
@@ -668,17 +672,17 @@
     <a href="?">Trefoil knot</a><br />
     <a href="?xs1=-5.1&xs2=-3.4&xs3=-9.1&xs4=0&xc1=3.2&xc2=-10.4&xc3=10.4&xc4=0&ys1=4.1&ys2=0&ys3=-12.4&ys4=0&yc1=9.4&yc2=11.3&yc3=-6.8&yc4=0&zs1=7.3&zs2=-3.9&zs3=-2.1&zs4=0&zc1=1.6&zc2=-21.1&zc3=-9.9&zc4=0&xDivs=200&yDivs=50&textureScaleX=24&textureScaleY=1&scale=0.05&radius=0.15&shininess=20">Figure eight knot</a><br /><!-- https://mathcurve.com/courbes3d.gb/noeuds/noeudenhuit.shtml -->
     <a href="?xs1=-12.8&xs2=0&xs3=-7.8&xs4=0&xc1=-2.2&xc2=0&xc3=-4.4&xc4=0&ys1=0&ys2=-2.7&ys3=0&ys4=4.6&yc1=0&yc2=-1&yc3=0&yc4=3.8&zs1=0&zs2=0&zs3=-4&zs4=0&zc1=0&zc2=0&zc3=7&zc4=0&xDivs=200&yDivs=50&textureScaleX=24&textureScaleY=1&scale=0.1&radius=0.15&shininess=20">Granny knot</a><br /><!-- http://paulbourke.net/geometry/knots/ -->
-    <a href="?xs1=-12.8&xs2=0&xs3=-7.8&xs4=0&xs5=0&xc1=-2.2&xc2=0&xc3=-4.4&xc4=0&xc5=0&ys1=0&ys2=0&ys3=-4.3&ys4=0&ys5=-3.9&yc1=1.1&yc2=0&yc3=0&yc4=0&yc5=3.4&zs1=0&zs2=0&zs3=-4&zs4=0&zs5=-0.9&zc1=0&zc2=0&zc3=7&zc4=0&zc5=1.8&xDivs=200&yDivs=50&textureScaleX=80&textureScaleY=1&scale=0.1&radius=0.04&shininess=20">Square knot</a><br /><!-- Square knot: https://virtualmathmuseum.org/docs/Square_Knot.pdf -->
+    <a href="?xs1=-12.8&xs2=0&xs3=-7.8&xs4=0&xs5=0&xc1=-2.2&xc2=0&xc3=-4.4&xc4=0&xc5=0&ys1=0&ys2=0&ys3=-4.3&ys4=0&ys5=-3.9&yc1=1.1&yc2=0&yc3=0&yc4=0&yc5=3.4&zs1=0&zs2=0&zs3=-4&zs4=0&zs5=-0.9&zc1=0&zc2=0&zc3=7&zc4=0&zc5=1.8&xDivs=400&yDivs=50&textureScaleX=80&textureScaleY=1&scale=0.1&radius=0.04&shininess=20">Square knot</a><br /><!-- Square knot: https://virtualmathmuseum.org/docs/Square_Knot.pdf -->
     <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=1&ys3=0&ys4=0&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=1&zc2=0&zc3=0&zc4=0&xDivs=200&yDivs=50&textureScaleX=16&textureScaleY=1&scale=1&radius=0.2&shininess=20">Lissajous curve (1, 1, 2)</a><br />
     <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=0&ys3=1&ys4=0&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=1&zc2=0&zc3=0&zc4=0&xDivs=200&yDivs=50&textureScaleX=16&textureScaleY=1&scale=1&radius=0.2&shininess=20">Lissajous curve (1, 1, 3)</a><br />
-    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=1&ys3=0&ys4=0&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=0&zc2=0&zc3=1&zc4=0&xDivs=200&yDivs=50&textureScaleX=16&textureScaleY=1&scale=1&radius=0.2&shininess=20">Lissajous curve (1, 2, 3)</a><br />
-    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=0&ys3=0&ys4=1&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=1&zc2=0&zc3=0&zc4=0&xDivs=200&yDivs=50&textureScaleX=32&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 1, 4)</a><br />
-    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=0&ys3=0&ys4=1&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=0&zc2=0&zc3=1&zc4=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 3, 4)</a><br />
-    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=1&yc1=0&yc2=0&yc3=0&yc4=0&yc5=0&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=1&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 1, 5)</a><br />
-    <a href="?xs1=0&xs2=1&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=1&yc1=0&yc2=0&yc3=0&yc4=0&yc5=0&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=1&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 2, 5)</a><br />
-    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=0&yc1=0&yc2=0&yc3=0&yc4=0&yc5=1&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=0&zc2=0&zc3=1&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 3, 5)</a><br />
-    <a href="?xs1=0&xs2=1&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=1&yc1=0&yc2=0&yc3=0&yc4=0&yc5=0&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=0&zc2=0&zc3=1&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (2, 3, 5)</a><br />
-    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=0&yc1=0&yc2=0&yc3=0&yc4=0&yc5=1&zs1=0&zs2=0&zs3=0&zs4=1&zs5=0&zc1=0&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 4, 5)</a><br />
-    <a href="?xs1=0&xs2=0&xs3=0&xs4=1&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=0&yc1=0&yc2=0&yc3=0&yc4=0&yc5=1&zs1=0&zs2=0&zs3=1&zs4=0&zs5=0&zc1=0&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=200&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (3, 4, 5)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=1&ys3=0&ys4=0&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=0&zc2=0&zc3=1&zc4=0&xDivs=400&yDivs=50&textureScaleX=16&textureScaleY=1&scale=1&radius=0.2&shininess=20">Lissajous curve (1, 2, 3)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=0&ys3=0&ys4=1&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=1&zc2=0&zc3=0&zc4=0&xDivs=400&yDivs=50&textureScaleX=32&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 1, 4)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xc1=0&xc2=0&xc3=0&xc4=0&ys1=0&ys2=0&ys3=0&ys4=1&yc1=0&yc2=0&yc3=0&yc4=0&zs1=0&zs2=0&zs3=0&zs4=0&zc1=0&zc2=0&zc3=1&zc4=0&xDivs=400&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 3, 4)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=1&yc1=0&yc2=0&yc3=0&yc4=0&yc5=0&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=1&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=400&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 1, 5)</a><br />
+    <a href="?xs1=0&xs2=1&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=1&yc1=0&yc2=0&yc3=0&yc4=0&yc5=0&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=1&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=400&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 2, 5)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=0&yc1=0&yc2=0&yc3=0&yc4=0&yc5=1&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=0&zc2=0&zc3=1&zc4=0&zc5=0&xDivs=400&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 3, 5)</a><br />
+    <a href="?xs1=0&xs2=1&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=1&yc1=0&yc2=0&yc3=0&yc4=0&yc5=0&zs1=0&zs2=0&zs3=0&zs4=0&zs5=0&zc1=0&zc2=0&zc3=1&zc4=0&zc5=0&xDivs=400&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (2, 3, 5)</a><br />
+    <a href="?xs1=1&xs2=0&xs3=0&xs4=0&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=0&yc1=0&yc2=0&yc3=0&yc4=0&yc5=1&zs1=0&zs2=0&zs3=0&zs4=1&zs5=0&zc1=0&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=800&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (1, 4, 5)</a><br />
+    <a href="?xs1=0&xs2=0&xs3=0&xs4=1&xs5=0&xc1=0&xc2=0&xc3=0&xc4=0&xc5=0&ys1=0&ys2=0&ys3=0&ys4=0&ys5=0&yc1=0&yc2=0&yc3=0&yc4=0&yc5=1&zs1=0&zs2=0&zs3=1&zs4=0&zs5=0&zc1=0&zc2=0&zc3=0&zc4=0&zc5=0&xDivs=400&yDivs=50&textureScaleX=48&textureScaleY=1&scale=1&radius=0.1&shininess=20">Lissajous curve (3, 4, 5)</a><br />
   </body>
 </html>
